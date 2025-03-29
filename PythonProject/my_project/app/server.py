@@ -14,7 +14,7 @@ def receive_data():
     data = request.json
     conn = connect_db()
     cursor = conn.cursor()
-
+    print(data)
     # 1. Flask API Stores Data in PostgreSQL
     cursor.execute("""
         INSERT INTO survey_data (
@@ -24,14 +24,14 @@ def receive_data():
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING submission_id;
     """, (
-        data["user_info"]["email"], 
-        data["user_info"]["ip"],
-        data["pet_info"]["type"],
-        data["pet_info"]["name"],
-        data["pet_info"]["breed"],
-        data["pet_info"]["gender"],
-        data["pet_info"]["age"],
-        json.dumps(data["personality_behavior"])
+        data["survey_data"]["user_info"]["email"], 
+        data["survey_data"]["user_info"]["ip"],
+        data["survey_data"]["pet_info"]["PetSpecies"],
+        data["survey_data"]["pet_info"]["PetName"],
+        data["survey_data"]["pet_info"]["PetBreed"],
+        data["survey_data"]["pet_info"]["PetGender"],
+        data["survey_data"]["pet_info"]["PetAge"],
+        json.dumps(data["survey_data"]["personality_and_behavior"])
     ))
 
     submission_id = cursor.fetchone()[0]
@@ -51,27 +51,26 @@ def get_result(submission_id):
 
     # 6. Frontend Requests AI Results from Flask
     cursor.execute("""
-        SELECT ai_output_image, ai_output_text, generated_at 
+        SELECT ai_output_text, generated_at 
         FROM survey_data 
         WHERE submission_id = %s;
     """, (submission_id,))
     result = cursor.fetchone()
     cursor.close()
     conn.close()
-
+    print(result)
     if not result or not result[0]:
         return jsonify({"status": "processing"}), 202
 
     return jsonify({
         "status": "completed", 
         "ai_output": {
-            "image": result[0],
-            "text": result[1],
-            "generated_at": result[2].isoformat() if result[2] else None
+            "text": result[0],
+            "generated_at": result[1].isoformat() if result[1] else None
         }
     })
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5001)
 
 

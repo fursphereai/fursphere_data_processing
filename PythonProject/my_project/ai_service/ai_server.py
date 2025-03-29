@@ -226,6 +226,7 @@ async def process_ai(input: AIInput):
         )
         
         # Get AI's response
+        print(completion.choices[0].message.content)
         ai_response = completion.choices[0].message.content
         
         # Parse AI response

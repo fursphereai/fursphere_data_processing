@@ -17,11 +17,23 @@ def process_ai_task(task_id: int):
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         # 读取宠物信息
+        # cur.execute("""
+        #     SELECT p.*, s.personality_behavior
+        #     FROM pet_info p
+        #     JOIN survey_data s ON p.id = s.pet_id
+        #     WHERE p.id = %s
+        # """, (task_id,))
         cur.execute("""
-            SELECT p.*, s.personality_behavior
-            FROM pet_info p
-            JOIN survey_data s ON p.id = s.pet_id
-            WHERE p.id = %s
+            SELECT 
+                submission_id,
+                pet_type,
+                pet_name,
+                pet_breed,
+                pet_gender,
+                pet_age,
+                personality_behavior
+            FROM survey_data
+            WHERE submission_id = %s
         """, (task_id,))
         
         pet_data = cur.fetchone()
@@ -54,34 +66,45 @@ def process_ai_task(task_id: int):
             raise Exception(f"AI service error: {ai_response.text}")
             
         ai_result = ai_response.json()
-        
+        print(ai_result)
         # 5. 更新数据库中的AI结果
+        # cur.execute("""
+        #     UPDATE survey_data 
+        #     SET mbti_scores = %s,
+        #         mbti_labels = %s,
+        #         mbti_explanations = %s,
+        #         personal_speech = %s,
+        #         third_person_diagnosis = %s,
+        #         ai_processed = true,
+        #         updated_at = NOW()
+        #     WHERE submission_id = %s
+        # """, (
+        #     json.dumps(mbti_scores),
+        #     json.dumps({
+        #         "E/I": ai_result["m_label"],
+        #         "S/N": ai_result["b_label"],
+        #         "T/F": ai_result["t_label"],
+        #         "J/P": ai_result["i_label"]
+        #     }),
+        #     json.dumps({
+        #         "E/I": ai_result["m_explanation"],
+        #         "S/N": ai_result["b_explanation"],
+        #         "T/F": ai_result["t_explanation"],
+        #         "J/P": ai_result["i_explanation"]
+        #     }),
+        #     ai_result["personal_speech"],
+        #     ai_result["third_person_diagnosis"],
+        #     task_id
+        # ))
+
         cur.execute("""
             UPDATE survey_data 
-            SET mbti_scores = %s,
-                mbti_labels = %s,
-                mbti_explanations = %s,
-                personal_speech = %s,
-                third_person_diagnosis = %s,
+            SET ai_output_text  = %s,
                 ai_processed = true,
-                updated_at = NOW()
-            WHERE pet_id = %s
+                generated_at = NOW()
+            WHERE submission_id = %s
         """, (
-            json.dumps(mbti_scores),
-            json.dumps({
-                "E/I": ai_result["m_label"],
-                "S/N": ai_result["b_label"],
-                "T/F": ai_result["t_label"],
-                "J/P": ai_result["i_label"]
-            }),
-            json.dumps({
-                "E/I": ai_result["m_explanation"],
-                "S/N": ai_result["b_explanation"],
-                "T/F": ai_result["t_explanation"],
-                "J/P": ai_result["i_explanation"]
-            }),
-            ai_result["personal_speech"],
-            ai_result["third_person_diagnosis"],
+            json.dumps(ai_result),
             task_id
         ))
         
